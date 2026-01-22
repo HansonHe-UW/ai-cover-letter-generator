@@ -62,4 +62,4 @@ This project is configured to **ignore** sensitive files. Ensure you have the `.
 -   **Document Gen**: python-docx, FPDF2
 
 ---
-Made with ❤️ by [Your Name]
+Made with ❤️ by [Hanson He]
