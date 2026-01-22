@@ -1,0 +1,8 @@
+secrets_store.json
+venv/
+__pycache__/
+*.pyc
+.env
+my_profile.json
+.DS_Store
+output/
