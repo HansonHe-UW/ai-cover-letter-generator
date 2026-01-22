@@ -20,7 +20,7 @@ A professional, privacy-focused AI tool that crafts tailored cover letters from 
 
 ### 1. Clone the Repository
 ```bash
-git clone https://github.com/yourusername/ai-cover-letter-generator.git
+git clone https://github.com/HansonHe-UW/ai-cover-letter-generator.git
 cd ai-cover-letter-generator
 ```
 
