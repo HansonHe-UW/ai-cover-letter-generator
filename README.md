@@ -18,19 +18,11 @@ A local-first, privacy-focused tool to generate tailored cover letters using Ope
     cd ai-cover-letter-generator
     ```
 
-<<<<<<< HEAD
-### 1. Clone the Repository
-```bash
-git clone https://github.com/HansonHe-UW/ai-cover-letter-generator.git
-cd ai-cover-letter-generator
-```
-=======
 2.  **Setup**
     Run the setup script to create the virtual environment and install dependencies.
     ```bash
     ./setup.sh
     ```
->>>>>>> 9204232 (Release v1.1: Added encryption, editable results, and improved exports)
 
 3.  **Run**
     Launch the app:
@@ -69,14 +61,9 @@ cd ai-cover-letter-generator
 *   Python 3.8+
 *   See `requirements.txt` for dependencies.
 
-<<<<<<< HEAD
----
-Made with ❤️ by [Hanson He]
-=======
 ## Manual QA / Self-Check
 
 To verify the installation:
 1.  Run the included tests: `python3 -m unittest tests/test_basics.py`
 2.  Launch app, confirm you can create a profile.
 3.  Try "Enable Encryption" in Settings.
->>>>>>> 9204232 (Release v1.1: Added encryption, editable results, and improved exports)
