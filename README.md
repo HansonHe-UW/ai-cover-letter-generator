@@ -1,65 +1,69 @@
-# AI Cover Letter Generator 🚀
+# AI Cover Letter Generator v1.1
 
-[![Made with Python](https://img.shields.io/badge/Python-3.10+-blue.svg)](https://www.python.org/)
-[![Streamlit App](https://img.shields.io/badge/Streamlit-FF4B4B?style=flat&logo=streamlit&logoColor=white)](https://streamlit.io/)
-[![OpenAI](https://img.shields.io/badge/OpenAI-GPT--4o-412991?style=flat&logo=openai&logoColor=white)](https://openai.com/)
-[![Gemini](https://img.shields.io/badge/Google-Gemini--1.5-8E75B2?style=flat&logo=google&logoColor=white)](https://deepmind.google/technologies/gemini/)
+A local-first, privacy-focused tool to generate tailored cover letters using OpenAI (GPT-4o) or Google Gemini.
 
-A professional, privacy-focused AI tool that crafts tailored cover letters from your Resume (PDF) and a Job Description. Built for macOS users who want a clean, production-ready workflow.
+## Features (v1.1)
 
-## ✨ Features
+- **AI-Powered Generation**: Uses OpenAI or Google Gemini.
+- **Privacy First**: API keys stored locally (encrypted option available). Resume/JD data is sent *only* to the AI provider.
+- **Multi-Profile**: Switch between different personas (e.g., Engineering vs. Management).
+- **Professional Exports**: Word (.docx), PDF (.pdf), and LaTeX (.tex).
+- **Secure Vault**: Optional master-password encryption for your API keys.
 
--   **Multi-Model Intelligence**: Choose between **OpenAI (GPT-4o)** for maximum quality or **Google Gemini (1.5 Pro/Flash)** for speed and longer context.
--   **Granular Control**: Toggle between "Budget Mode" (Flash/Turbo) and "Quality Mode" (GPT-4o/Pro) on the fly.
--   **Smart Profile Management**: Your personal details (Name, Email, Links) are persisted locally but **never hardcoded** in the source.
--   **Secure API Key Vault**: Keys are stored locally in a git-ignored file. You only need to enter them once.
--   **Parallel Export**: Instantly generate downloads in **Word (.docx)**, **PDF (.pdf)**, and **LaTeX (.tex)** formats.
--   **Privacy First**: All sensitive data (`my_profile.json`, `secrets_store.json`) is strictly excluded from version control.
+## Quick Start (macOS)
 
-## 🚀 Installation & Setup (macOS)
+1.  **Clone & CD**
+    ```bash
+    git clone https://github.com/your-username/ai-cover-letter-generator.git
+    cd ai-cover-letter-generator
+    ```
 
-### 1. Clone the Repository
-```bash
-git clone https://github.com/HansonHe-UW/ai-cover-letter-generator.git
-cd ai-cover-letter-generator
-```
+2.  **Setup**
+    Run the setup script to create the virtual environment and install dependencies.
+    ```bash
+    ./setup.sh
+    ```
 
-### 2. Auto-Setup
-Run the included setup script. This will check for Homebrew, Python 3, create a virtual environment, and install dependencies.
-```bash
-./setup.sh
-```
+3.  **Run**
+    Launch the app:
+    ```bash
+    ./start_app.command
+    ```
+    Or manually:
+    ```bash
+    source venv/bin/activate
+    streamlit run app.py
+    ```
 
-### 3. Launch the App
-Use the one-click launcher to start the server and open your browser automatically.
-```bash
-./start_app.command
-```
-*(Or manually run: `./run.sh`)*
+## Usage
 
-## ⚙️ Configuration
+1.  **Settings**:
+    *   Enter your OpenAI or Gemini API Key.
+    *   (Optional) Enable Encryption to lock your keys with a password.
+    *   Create a Profile with your name and contact info.
+2.  **Generator**:
+    *   Upload your Resume (PDF).
+    *   Paste the Job Description.
+    *   Click "Generate".
+3.  **Output**:
+    *   Preview and Edit the letter directly in the app.
+    *   Download in your preferred format (Word, PDF, LaTeX).
 
-### User Profile
-Go to the **"⚙️ Settings"** tab in the app to set up your profile.
--   Name, Email, Phone, LinkedIn, Address.
--   This data is saved to `my_profile.json` locally.
+## 🔒 Privacy & Security
 
-### API Keys
-Enter your OpenAI or Google Gemini API keys in the **Settings** tab.
--   You can save them for future sessions.
--   They are stored securely in `secrets_store.json`.
+*   **Local Storage**: Your API keys and profiles are stored in `secrets_store.json` and `profiles/` on your machine.
+*   **Encrypted Vault**: v1.1 introduces AES encryption for your keys if you set a master password.
+*   **AI Data**: Your Resume text and the Job Description are sent to the selected AI Provider (OpenAI or Google) for processing. They are NOT stored on any third-party server by this app.
+*   **Safety**: Prompt injection defenses are enabled to prevent malicious hidden instructions in JDs.
 
-## 🛡️ Privacy & Security
-This project is configured to **ignore** sensitive files. Ensure you have the `.gitignore` file present which blocks:
--   `secrets_store.json`
--   `my_profile.json`
--   `.env`
+## Requirements
 
-## 📦 Tech Stack
--   **Frontend**: Streamlit
--   **AI Core**: OpenAI API, Google Generative AI SDK
--   **PDF Processing**: PyPDF2
--   **Document Gen**: python-docx, FPDF2
+*   Python 3.8+
+*   See `requirements.txt` for dependencies.
 
----
-Made with ❤️ by [Hanson He]
+## Manual QA / Self-Check
+
+To verify the installation:
+1.  Run the included tests: `python3 -m unittest tests/test_basics.py`
+2.  Launch app, confirm you can create a profile.
+3.  Try "Enable Encryption" in Settings.
