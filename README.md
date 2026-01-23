@@ -35,6 +35,22 @@ A local-first, privacy-focused tool to generate tailored cover letters using Ope
     streamlit run app.py
     ```
 
+    > **Tip (Permission Denied?)**: If macOS blocks the app ("unidentified developer"), simply **Right-Click** `start_app.command` -> **Open**. This bypasses the security check permanently for this file.
+
+## 🔑 Getting Your API Key
+
+This app needs an AI model to work. You can get one easily:
+
+### 1. Google Gemini (Free Tier Available)
+*   **Cost**: Historically Free (for personal use via Google AI Studio).
+*   **Get Key**: Go to [Google AI Studio](https://aistudio.google.com/app/apikey).
+*   **Model**: Supports `gemini-1.5-flash` (fast) and `gemini-1.5-pro`.
+
+### 2. OpenAI (GPT-4o)
+*   **Cost**: Paid (Pay-as-you-go).
+*   **Get Key**: Go to [OpenAI Platform](https://platform.openai.com/api-keys).
+*   **Model**: Supports `gpt-4o`, `gpt-4-turbo`, etc.
+
 ## Usage
 
 1.  **Settings**:
