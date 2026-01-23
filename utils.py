@@ -306,7 +306,7 @@ def generate_cover_letter_chain_openai(cv_text, job_description, api_key, user_i
 
 # --- Google Gemini Chain ---
 
-def generate_cover_letter_chain_gemini(cv_text, job_description, api_key, user_info, date_str="[Date]"):
+def generate_cover_letter_chain_gemini(cv_text, job_description, api_key, user_info, model_name="gemini-2.0-flash", date_str="[Date]"):
     """
     Generates a cover letter using Google Gemini with comprehensive error handling.
     Returns: {"ok": bool, "text": str or None, "usage": dict, "error": str}
@@ -331,21 +331,15 @@ def generate_cover_letter_chain_gemini(cv_text, job_description, api_key, user_i
     
     usage = {"total_tokens": 0}
 
-    # Get available models
-    try:
-        models = genai.list_models()
-        gemini_models = [m for m in models if "gemini" in m.id.lower()]
-        if not gemini_models:
-            return {"ok": False, "text": None, "usage": usage, "error": "No Gemini models available"}
-        active_model_id = gemini_models[0].id
-    except Exception as e:
-        return {"ok": False, "text": None, "usage": usage, "error": f"Failed to list Gemini models: {str(e)}"}
-
+    # Use selected model or fallback
+    active_model_id = model_name
+    
     # Initialize model
     try:
         active_model = genai.GenerativeModel(active_model_id)
     except Exception as e:
-        return {"ok": False, "text": None, "usage": usage, "error": f"Failed to initialize Gemini model: {str(e)}"}
+        return {"ok": False, "text": None, "usage": usage, "error": f"Failed to initialize Gemini model ({active_model_id}): {str(e)}"}
+
 
     # Step 1: Extract Skills
     try:

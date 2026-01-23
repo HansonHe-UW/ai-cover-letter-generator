@@ -11,6 +11,19 @@ from io import BytesIO
 # --- Page Config ---
 st.set_page_config(page_title="AI Cover Letter Generator v1.2", layout="wide", page_icon="📝")
 
+# --- Model Configuration ---
+MODEL_OPTIONS = {
+    "OpenAI": {
+        "gpt-4o": "GPT-4o (Best Quality)",
+        "gpt-3.5-turbo": "GPT-3.5 Turbo (Fast)"
+    },
+    "Google Gemini": {
+        "gemini-1.5-pro": "Gemini 1.5 Pro (Best Reasoning)",
+        "gemini-1.5-flash": "Gemini 1.5 Flash (Fast)"
+    }
+}
+
+
 # --- Session State Init ---
 DEFAULTS = {
     "api_key": "",
@@ -23,7 +36,9 @@ DEFAULTS = {
     "session_usage": {"tokens": 0, "cost_est": 0.0, "chars": 0},
     "master_password": None,
     "profile_name": "Default",
+    "model_name": "gpt-4o",
     "export_formats": ["Word", "PDF", "LaTeX"],
+
     "gen_metadata": {}
 }
 
@@ -128,6 +143,25 @@ with tab1:
         provider = st.radio("Provider", ["OpenAI", "Google Gemini"], horizontal=True)
         st.session_state.provider = provider
         
+        # Model Selection
+        model_map = MODEL_OPTIONS.get(provider, {})
+        display_map = {v: k for k, v in model_map.items()}
+        current_model = st.session_state.model_name
+        
+        # Default if switching providers
+        if current_model not in model_map:
+             current_model = list(model_map.keys())[0]
+
+        # Find display name for current model or default
+        default_idx = 0
+        model_values = list(model_map.keys())
+        if current_model in model_values:
+            default_idx = model_values.index(current_model)
+            
+        selected_display = st.selectbox("Model", list(model_map.values()), index=default_idx)
+        st.session_state.model_name = display_map[selected_display]
+
+        
         api_key_input = st.text_input("API Key", type="password", value=st.session_state.api_key, key="api_key_input")
         
         if api_key_input != st.session_state.api_key:
@@ -150,8 +184,9 @@ with tab1:
                 else:
                     try:
                         secrets_utils.set_master_password(pwd_input)
+                        # We save current key if exists
                         if st.session_state.api_key:
-                            secrets_utils.save_secret("api_key", st.session_state.api_key, pwd_input)
+                             secrets_utils.save_secret(st.session_state.provider, st.session_state.api_key, pwd_input)
                         show_success("Encryption enabled successfully")
                         st.rerun()
                     except Exception as e:
@@ -209,6 +244,19 @@ with tab1:
             }
             profile_utils.save_profile(st.session_state.profile_name, updated_profile)
             show_success("Profile saved successfully")
+
+    st.divider()
+    with st.expander("⚠️ Danger Zone"):
+        st.warning("This will reset the app and delete all local data (profiles, secrets, etc).")
+        if st.button("🔴 Factory Reset App"):
+            try:
+                if os.path.exists("secrets_store.json"): os.remove("secrets_store.json")
+                # Profile cleanup logic if needed, or just clear session
+                st.session_state.clear()
+                st.rerun()
+            except Exception as e:
+                show_error(f"Reset failed: {e}")
+
 
 # --- Generator Tab ---
 with tab2:
@@ -281,16 +329,18 @@ with tab2:
                             }
                             
                             # Call appropriate generation function
+                            # Call appropriate generation function
                             if st.session_state.provider == "Google Gemini":
                                 result = utils.generate_cover_letter_chain_gemini(
                                     cv_text, job_description, st.session_state.api_key,
-                                    user_info, date_str
+                                    user_info, model_name=st.session_state.model_name, date_str=date_str
                                 )
                             else:
                                 result = utils.generate_cover_letter_chain_openai(
                                     cv_text, job_description, st.session_state.api_key,
-                                    user_info, "gpt-4o", date_str
+                                    user_info, model_name=st.session_state.model_name, date_str=date_str
                                 )
+
                             
                             if result["ok"]:
                                 show_success("Cover Letter Generated Successfully!")

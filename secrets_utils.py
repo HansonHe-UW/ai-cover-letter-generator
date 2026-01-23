@@ -148,6 +148,11 @@ def init_encryption(password: str):
     with open(SECRETS_FILE, "w") as f:
         json.dump(encrypted_store, f, indent=2)
 
+def set_master_password(password: str):
+    """Wrapper for init_encryption to match UI expectation."""
+    init_encryption(password)
+
+
 def save_secret_encrypted(provider, name, key, password):
     """Saves a new key to the encrypted store."""
     # Load current with password
@@ -179,6 +184,29 @@ def save_secret_encrypted(provider, name, key, password):
         print(f"Error saving: {e}")
         return False
 
+def save_secret(provider, key, password=None):
+    """Unified save method that handles both encrypted and plain modes."""
+    # If we have a password, we MUST use encrypted save
+    if password:
+        return save_secret_encrypted(provider, "API Key", key, password)
+    
+    # Otherwise, check if we are in encrypted mode
+    secrets = load_secrets()
+    if secrets["is_encrypted"]:
+        # We can't save without password if it is encrypted
+        if secrets["requires_unlock"]:
+            raise Exception("Cannot save secret: Vault is locked.")
+        # If unlocked but password argument missing, we can't encrypt properly 
+        # (save_secret_encrypted needs the password to derive key). 
+        # This implies we can't save a new secret without re-entering the password 
+        # OR we need to cache the password in session state (which UI does).
+        # But here we only get arguments.
+        raise Exception("Password required to save to encrypted vault.")
+    
+    # Fallback to plain save
+    save_secret_plain(provider, key)
+
+
 def save_secret_plain(provider, key):
     """Legacy save for unencrypted mode."""
     # We now also upgrade the structure to dicts even in plain mode for consistency in UI
@@ -193,11 +221,15 @@ def save_secret_plain(provider, key):
 
     target = "openai_keys" if provider == "OpenAI" else "gemini_keys"
     
-    # Check duplicate (simple string check or dict check)
-    # If legacy list of strings
-    if all(isinstance(k, str) for k in data.get(target, [])):
-        if key not in data[target]:
+    # Check if we should maintain legacy string format (only if file has existing strings and NO dicts)
+    # If empty, we start fresh with dicts (v2 format)
+    existing_keys = data.get(target, [])
+    use_legacy_string_format = len(existing_keys) > 0 and all(isinstance(k, str) for k in existing_keys)
+
+    if use_legacy_string_format:
+        if key not in existing_keys:
             data[target].append(key)
+
     else:
         # It's a list of dicts or mixed. We'll append a dict.
         # But wait, to match user request "Backward compatibility", let's stick to simple list 
