@@ -9,420 +9,281 @@ import datetime
 from io import BytesIO
 
 # --- Page Config ---
-st.set_page_config(page_title="AI Cover Letter Generator v1.2", layout="wide", page_icon="📝")
+st.set_page_config(page_title="AI 智能求职信生成器", layout="wide")
+
+# --- Initialize Session State ---
+if 'api_key' not in st.session_state:
+    st.session_state.api_key = ""
+if 'provider' not in st.session_state:
+    st.session_state.provider = "OpenAI"
 
 # --- Model Configuration ---
 MODEL_OPTIONS = {
     "OpenAI": {
-        "gpt-4o": "GPT-4o (Best Quality)",
-        "gpt-3.5-turbo": "GPT-3.5 Turbo (Fast)"
+        "gpt-4o": "GPT-4o (Best Quality - Paid)",
+        "gpt-3.5-turbo": "GPT-3.5 Turbo (Fast & Cheap)"
     },
     "Google Gemini": {
-        "gemini-1.5-pro": "Gemini 1.5 Pro (Best Reasoning)",
-        "gemini-1.5-flash": "Gemini 1.5 Flash (Fast)"
+        "gemini-2.0-flash": "Gemini 2.0 Flash (New - Fast)",
+        "gemini-1.5-flash": "Gemini 1.5 Flash (Standard)",
+        "gemini-1.5-pro": "Gemini 1.5 Pro (High Reasoning)"
     }
 }
 
-
-# --- Session State Init ---
-DEFAULTS = {
-    "api_key": "",
-    "provider": "OpenAI",
-    "cover_letter_content": None,
-    "docx_data": None,
-    "pdf_data": None,
-    "latex_data": None,
-    "latex_code": None,
-    "session_usage": {"tokens": 0, "cost_est": 0.0, "chars": 0},
-    "master_password": None,
-    "profile_name": "Default",
-    "model_name": "gpt-4o",
-    "export_formats": ["Word", "PDF", "LaTeX"],
-
-    "gen_metadata": {}
-}
-
-for k, v in DEFAULTS.items():
-    if k not in st.session_state:
-        st.session_state[k] = v
-
-# --- Helper: Secrets Loading ---
-def get_secrets_status():
-    """Loads secrets considering lock state."""
-    pwd = st.session_state.master_password
-    return secrets_utils.load_secrets(pwd)
-
-def update_exports():
-    """Regenerates export files when text is edited."""
-    if not st.session_state.gen_metadata:
-        return
-        
-    meta = st.session_state.gen_metadata
-    full_data = {
-        "body": st.session_state.cover_letter_content,
-        "user_info": meta.get("user_info", {}),
-        "date_str": meta.get("date_str", ""),
-        "hr_info": meta.get("hr_info", {})
-    }
-    
-    formats = st.session_state.export_formats
-    if "Word" in formats:
-        st.session_state.docx_data = export_utils.create_docx(full_data)
-    if "PDF" in formats:
-        st.session_state.pdf_data = export_utils.create_pdf(full_data)
-    if "LaTeX" in formats:
-        data, code = export_utils.create_latex(full_data)
-        st.session_state.latex_data = data
-        st.session_state.latex_code = code
-
-# --- UI Helper Functions ---
-def show_error(message):
-    """Display user-friendly error message."""
-    st.error(f"❌ {message}")
-
-def show_success(message):
-    """Display success message."""
-    st.success(f"✅ {message}")
-
-def show_info(message):
-    """Display info message."""
-    st.info(f"ℹ️ {message}")
-
-# --- Sidebar ---
+# --- Sidebar (Status & Reset) ---
 with st.sidebar:
     st.title("🧩 Status")
     
-    # Profile Selector
-    profile_list = profile_utils.list_profiles()
-    selected_idx = 0
-    if st.session_state.profile_name in profile_list:
-        selected_idx = profile_list.index(st.session_state.profile_name)
-    
-    new_profile_selection = st.selectbox("👤 Active Profile", profile_list, index=selected_idx)
-    if new_profile_selection != st.session_state.profile_name:
-        st.session_state.profile_name = new_profile_selection
-        st.rerun()
-
-    # Secrets Status
-    secrets_status = get_secrets_status()
-    if secrets_status["requires_unlock"]:
-        st.error("🔒 Secrets Locked")
-        pwd_input = st.text_input("Unlock Password", type="password", key="sidebar_pwd")
-        if st.button("Unlock"):
-            st.session_state.master_password = pwd_input
-            st.rerun()
+    # Check Profile
+    profile = profile_utils.load_profile()
+    if profile.get("full_name"):
+        st.success(f"👤 Profile: {profile.get('full_name')}")
     else:
-        if st.session_state.api_key:
-            st.success("🟢 API Key: Active")
-        else:
-            st.warning("🔴 API Key: Missing")
-
+        st.warning("👤 Profile: Empty")
+        
+    # Check API Key
+    if st.session_state.api_key:
+        st.success("🟢 API Key: Set")
+    else:
+        st.error("🔴 API Key: Missing")
+        
     st.divider()
     
-    # Usage Stats
-    st.subheader("📊 Session Usage")
-    u = st.session_state.session_usage
-    if u['tokens'] > 0:
-        st.write(f"**Tokens**: ~{u['tokens']}")
-    if u['chars'] > 0:
-        st.write(f"**Chars**: ~{u['chars']}")
+    # Reset Button
+    if st.button("🔄 Reset App State"):
+        st.session_state.clear()
+        st.rerun()
 
-# --- Main Tabs ---
-st.title("📝 AI Cover Letter Generator v1.2")
+# --- Initialize Session State for Content ---
+if 'cover_letter_content' not in st.session_state:
+    st.session_state.cover_letter_content = None
+if 'docx_data' not in st.session_state:
+    st.session_state.docx_data = None
+if 'pdf_data' not in st.session_state:
+    st.session_state.pdf_data = None
+if 'latex_data' not in st.session_state:
+    st.session_state.latex_data = None
+if 'latex_code' not in st.session_state:
+    st.session_state.latex_code = None
 
-tab1, tab2, tab3 = st.tabs(["⚙️ Settings", "🔧 Generator", "📥 Output"])
 
-# --- Settings Tab ---
-with tab1:
-    st.header("Settings")
+# --- Main Layout ---
+st.title("AI 智能求职信生成器")
+
+tab_generator, tab_settings = st.tabs(["🚀 Generator", "⚙️ Settings"])
+
+# ==========================
+# TAB: SETTINGS
+# ==========================
+with tab_settings:
+    st.header("⚙️ Configuration")
     
-    col_s1, col_s2 = st.columns([2, 1])
+    col_set_1, col_set_2 = st.columns(2)
     
-    with col_s1:
-        st.subheader("API Configuration")
-        provider = st.radio("Provider", ["OpenAI", "Google Gemini"], horizontal=True)
+    # --- Section 1: API & Model ---
+    with col_set_1:
+        st.subheader("1. AI Provider & Model")
+        
+        # Provider Selection
+        provider_options = list(MODEL_OPTIONS.keys())
+        provider = st.radio("AGI Provider", provider_options, index=0 if st.session_state.provider == "OpenAI" else 1)
         st.session_state.provider = provider
         
         # Model Selection
-        model_map = MODEL_OPTIONS.get(provider, {})
-        display_map = {v: k for k, v in model_map.items()}
-        current_model = st.session_state.model_name
+        model_map = MODEL_OPTIONS[provider]
+        display_model_map = {v: k for k, v in model_map.items()}
+        selected_display_name = st.selectbox("Model Version", list(model_map.values()))
+        selected_model_name = display_model_map[selected_display_name]
         
-        # Default if switching providers
-        if current_model not in model_map:
-             current_model = list(model_map.keys())[0]
-
-        # Find display name for current model or default
-        default_idx = 0
-        model_values = list(model_map.keys())
-        if current_model in model_values:
-            default_idx = model_values.index(current_model)
-            
-        selected_display = st.selectbox("Model", list(model_map.values()), index=default_idx)
-        st.session_state.model_name = display_map[selected_display]
-
+        # API Key Management
+        st.markdown("---")
+        st.markdown("**API Key Management**")
         
-        api_key_input = st.text_input("API Key", type="password", value=st.session_state.api_key, key="api_key_input")
-        
-        if api_key_input != st.session_state.api_key:
-            # Validate API key before saving
-            validation = utils.validate_api_key(api_key_input, provider.split()[0].lower())
-            if not validation["valid"]:
-                show_error(validation["error"])
-            else:
-                st.session_state.api_key = api_key_input
-                show_info("API key validated and saved")
-        
-        # Encryption
-        use_encryption = st.checkbox("🔐 Enable Encryption", value=bool(secrets_utils.SECRETS_FILE and os.path.exists(secrets_utils.SECRETS_FILE)))
-        
-        if use_encryption:
-            pwd_input = st.text_input("Master Password", type="password", key="master_pwd_setup")
-            if st.button("Enable Encryption"):
-                if not pwd_input:
-                    show_error("Password cannot be empty")
-                else:
-                    try:
-                        secrets_utils.set_master_password(pwd_input)
-                        # We save current key if exists
-                        if st.session_state.api_key:
-                             secrets_utils.save_secret(st.session_state.provider, st.session_state.api_key, pwd_input)
-                        show_success("Encryption enabled successfully")
-                        st.rerun()
-                    except Exception as e:
-                        show_error(f"Encryption setup failed: {str(e)}")
-    
-    with col_s2:
-        st.subheader("Profile Management")
-        profile_name = st.text_input("Profile Name", value="Default")
-        
-        if st.button("Create Profile"):
-            profile_utils.save_profile(profile_name, {
-                "name": profile_name,
-                "created": str(datetime.datetime.now())
-            })
-            st.session_state.profile_name = profile_name
-            show_success(f"Profile '{profile_name}' created")
-            st.rerun()
-    
-    st.divider()
-    st.subheader("👤 Active Profile Settings")
-    
-    live_profile = profile_utils.load_profile(st.session_state.profile_name)
-    
-    col_p1, col_p2 = st.columns(2)
-    
-    with col_p1:
-        name = st.text_input("Full Name", value=live_profile.get("name", ""), key="profile_name")
-        email = st.text_input("Email", value=live_profile.get("email", ""), key="profile_email")
-    
-    with col_p2:
-        phone = st.text_input("Phone", value=live_profile.get("phone", ""), key="profile_phone")
-        linkedin = st.text_input("LinkedIn URL", value=live_profile.get("linkedin", ""), key="profile_linkedin")
-    
-    # Validate email before saving
-    if st.button("Save Profile"):
-        errors = []
-        
-        if not name:
-            errors.append("Name is required")
-        
-        if email:
-            email_validation = utils.validate_email(email)
-            if not email_validation["valid"]:
-                errors.append(email_validation["error"])
-        
-        if errors:
-            for error in errors:
-                show_error(error)
+        secrets = secrets_utils.load_secrets()
+        if provider == "OpenAI":
+            saved_keys = secrets.get("openai_keys", [])
         else:
-            updated_profile = {
-                "name": name,
-                "email": email,
-                "phone": phone,
-                "linkedin": linkedin
-            }
-            profile_utils.save_profile(st.session_state.profile_name, updated_profile)
-            show_success("Profile saved successfully")
+            saved_keys = secrets.get("gemini_keys", [])
+            
+        NEW_KEY_OPTION = "➕ Enter New Key"
+        options = [NEW_KEY_OPTION] + [secrets_utils.mask_key(k) for k in saved_keys]
+        key_map = {secrets_utils.mask_key(k): k for k in saved_keys}
+        
+        selected_option = st.selectbox(f"Select saved {provider} Key", options)
+        
+        if selected_option == NEW_KEY_OPTION:
+            api_input = st.text_input(f"Enter {provider} API Key", type="password")
+            save_key_check = st.checkbox(f"Save this {provider} key safely")
+            current_api_key = api_input
+            should_save = save_key_check
+        else:
+            current_api_key = key_map[selected_option]
+            should_save = False
+            st.info(f"Using saved key: {selected_option}")
+        
+        # Update session state with the valid key immediately for the sidebar status
+        if current_api_key:
+            st.session_state.api_key = current_api_key
 
-    st.divider()
+    # --- Section 2: User Profile ---
+    with col_set_2:
+        st.subheader("2. User Profile")
+        with st.form("profile_form"):
+            user_name = st.text_input("姓名 (Name)", value=profile.get("full_name", ""), placeholder="e.g. John Doe")
+            user_email = st.text_input("邮箱 (Email)", value=profile.get("email", ""), placeholder="e.g. john.doe@example.com")
+            user_phone = st.text_input("电话 (Phone)", value=profile.get("phone", ""), placeholder="e.g. +1 555-010-9999")
+            user_linkedin = st.text_input("LinkedIn", value=profile.get("linkedin", ""), placeholder="e.g. linkedin.com/in/johndoe")
+            user_address = st.text_input("地址 (Address)", value=profile.get("address", ""), placeholder="e.g. Toronto, ON")
+            
+            submitted = st.form_submit_button("💾 Save Profile")
+            if submitted:
+                new_profile = {
+                    "full_name": user_name,
+                    "email": user_email,
+                    "phone": user_phone,
+                    "linkedin": user_linkedin,
+                    "address": user_address
+                }
+                if profile_utils.save_profile(new_profile):
+                    st.success("Profile saved successfully!")
+                    st.rerun() # Rerun to update sidebar status
+
+    # --- Section 3: Factory Reset ---
+    st.markdown("---")
     with st.expander("⚠️ Danger Zone"):
-        st.warning("This will reset the app and delete all local data (profiles, secrets, etc).")
-        if st.button("🔴 Factory Reset App"):
+        st.warning("This will delete all saved API keys and your profile data. This action cannot be undone.")
+        if st.button("🗑️ Reset App & Delete All Data", type="primary", use_container_width=True):
+            # Delete files
             try:
-                if os.path.exists("secrets_store.json"): os.remove("secrets_store.json")
-                # Profile cleanup logic if needed, or just clear session
-                st.session_state.clear()
-                st.rerun()
+                if os.path.exists("secrets_store.json"):
+                    os.remove("secrets_store.json")
+                if os.path.exists("my_profile.json"):
+                    os.remove("my_profile.json")
+                # Optional: clear output output dir if we had one, but we use in-memory mostly
             except Exception as e:
-                show_error(f"Reset failed: {e}")
+                st.error(f"Error deleting files: {e}")
+            
+            # Clear State
+            st.session_state.clear()
+            st.toast("App reset successfully!", icon="🧹")
+            st.rerun()
 
-
-# --- Generator Tab ---
-with tab2:
-    st.header("Generate Cover Letter")
+# ==========================
+# TAB: GENERATOR
+# ==========================
+with tab_generator:
+    st.header("🚀 Create Cover Letter")
+    
+    # Prepare User Info from live profile
+    # Reload to ensure fresh data if just saved
+    live_profile = profile_utils.load_profile()
+    user_info = {
+        "name": live_profile.get("full_name", ""),
+        "email": live_profile.get("email", ""),
+        "phone": live_profile.get("phone", ""),
+        "linkedin": live_profile.get("linkedin", ""),
+        "address": live_profile.get("address", "")
+    }
     
     col_gen_1, col_gen_2 = st.columns([1, 1])
     
     with col_gen_1:
         st.subheader("Input")
         uploaded_file = st.file_uploader("1. Upload Resume (PDF)", type="pdf")
-        job_description = st.text_area("2. Paste Job Description", height=300, help="Paste the complete job description from the job posting")
+        job_description = st.text_area("2. Paste Job Description (JD)", height=300)
         
+        # Date Selection
         today = datetime.date.today()
-        letter_date = st.date_input("3. Date", value=today)
-        date_str = letter_date.strftime("%B %d, %Y")
+        letter_date = st.date_input("3. Date on Letter", value=today)
+        date_str = letter_date.strftime("%B %d, %Y") # e.g. January 21, 2026
         
-        generate_btn = st.button("✨ Generate", type="primary", use_container_width=True)
+        generate_btn = st.button("✨ Generate Cover Letter", type="primary", use_container_width=True)
 
     with col_gen_2:
-        st.subheader("Result")
+        st.subheader("Output")
         
+        # Generation Logic
         if generate_btn:
-            errors = []
-            
-            # Validate API Key
-            if not st.session_state.api_key:
-                errors.append("API Key not configured in Settings tab")
+            if not current_api_key:
+                st.error(f"❌ Missing API Key. Please go to 'Settings' tab to configure {provider}.")
+            elif not uploaded_file:
+                st.error("❌ Please upload your Resume PDF.")
+            elif not job_description:
+                st.error("❌ Please enter the Job Description.")
             else:
-                api_validation = utils.validate_api_key(st.session_state.api_key, st.session_state.provider.split()[0].lower())
-                if not api_validation["valid"]:
-                    errors.append(api_validation["error"])
-            
-            # Validate Resume File
-            if not uploaded_file:
-                errors.append("Resume PDF file is required")
-            else:
-                pdf_validation = utils.validate_pdf_file(uploaded_file)
-                if not pdf_validation["valid"]:
-                    errors.append(pdf_validation["error"])
-            
-            # Validate Job Description
-            if not job_description:
-                errors.append("Job Description is required")
-            else:
-                jd_validation = utils.validate_job_description(job_description)
-                if not jd_validation["valid"]:
-                    errors.append(jd_validation["error"])
-            
-            # Display validation errors
-            if errors:
-                for error in errors:
-                    show_error(error)
-            else:
-                # All validations passed, proceed with generation
-                with st.spinner("Analyzing & Writing..."):
-                    try:
-                        # Extract Text from PDF
-                        pdf_result = utils.extract_text_from_pdf(uploaded_file)
+                # Save key if requested (Just-in-time saving)
+                if should_save and current_api_key:
+                    secrets_utils.save_secret(provider, current_api_key)
+                    st.toast(f"API Key saved to {provider} history!", icon="💾")
+                
+                with st.spinner(f"AI ({selected_model_name}) is analyzing & writing..."):
+                    # Extract text
+                    cv_text = utils.extract_text_from_pdf(uploaded_file)
+                    
+                    if cv_text:
+                        # Map "Google Gemini" to "Gemini" for the backend utility
+                        backend_provider = "Gemini" if provider == "Google Gemini" else "OpenAI"
+
+                        # Generate
+                        cover_letter = utils.generate_cover_letter(
+                            cv_text, job_description, current_api_key, backend_provider, user_info, selected_model_name, date_str
+                        )
                         
-                        if not pdf_result["ok"]:
-                            show_error(pdf_result["error"])
-                        else:
-                            cv_text = pdf_result["text"]
-                            live_profile = profile_utils.load_profile(st.session_state.profile_name)
-                            user_info = {
-                                "name": live_profile.get("name", "John Doe"),
-                                "email": live_profile.get("email", ""),
-                                "phone": live_profile.get("phone", ""),
-                                "linkedin": live_profile.get("linkedin", "")
+                        if cover_letter and not cover_letter.startswith("Error"):
+                            # STORE SUCCESS IN SESSION STATE
+                            st.session_state.cover_letter_content = cover_letter
+                            
+                            # Prepare Data for Export
+                            full_data = {
+                                "body": cover_letter,
+                                "user_info": live_profile,
+                                "date_str": date_str,
+                                "hr_info": {} 
                             }
                             
-                            # Call appropriate generation function
-                            # Call appropriate generation function
-                            if st.session_state.provider == "Google Gemini":
-                                result = utils.generate_cover_letter_chain_gemini(
-                                    cv_text, job_description, st.session_state.api_key,
-                                    user_info, model_name=st.session_state.model_name, date_str=date_str
-                                )
-                            else:
-                                result = utils.generate_cover_letter_chain_openai(
-                                    cv_text, job_description, st.session_state.api_key,
-                                    user_info, model_name=st.session_state.model_name, date_str=date_str
-                                )
-
+                            # Generate Files and Store in Session State
+                            st.session_state.docx_data = export_utils.create_docx(full_data)
+                            st.session_state.pdf_data = export_utils.create_pdf(full_data)
+                            st.session_state.latex_data, st.session_state.latex_code = export_utils.create_latex(full_data)
                             
-                            if result["ok"]:
-                                show_success("Cover Letter Generated Successfully!")
-                                st.session_state.cover_letter_content = result["text"]
-                                st.session_state.gen_metadata = {
-                                    "user_info": user_info,
-                                    "date_str": date_str,
-                                    "hr_info": result.get("hr_info", {})
-                                }
-                                
-                                # Update Usage Stats
-                                u_clean = st.session_state.session_usage
-                                new_u = result.get("usage", {})
-                                u_clean['tokens'] += new_u.get("total_tokens", 0)
-                                
-                                # Regenerate exports
-                                update_exports()
-                                st.rerun()
-                            else:
-                                show_error(result["error"])
-                    
-                    except Exception as e:
-                        show_error(f"Unexpected error occurred: {str(e)}")
-                        st.info("Please check your inputs and try again. If the error persists, contact support.")
+                            st.success("✅ Success! Content Saved.")
+                            
+                        else:
+                            st.error(f"Generation Failed: {cover_letter}")
+                    else:
+                        st.error("Could not extract text from PDF.")
 
-# --- Output Tab ---
-with tab3:
-    st.header("Download & Edit")
-    
-    if not st.session_state.cover_letter_content:
-        st.info("👆 Generate a cover letter first in the Generator tab")
-    else:
-        st.subheader("Edit")
-        edited_text = st.text_area(
-            "Edit your cover letter:",
-            value=st.session_state.cover_letter_content,
-            height=400,
-            key="letter_editor"
-        )
-        
-        if edited_text != st.session_state.cover_letter_content:
-            st.session_state.cover_letter_content = edited_text
-            update_exports()
-        
-        st.divider()
-        st.subheader("Export & Download")
-        
-        col_exp_1, col_exp_2, col_exp_3 = st.columns(3)
-        
-        with col_exp_1:
-            if st.session_state.docx_data:
+        # Display Logic (Persistent)
+        if st.session_state.cover_letter_content:
+            st.success("✅ Generated Successfully")
+            st.markdown("### Preview")
+            st.text_area("Finalized Text", value=st.session_state.cover_letter_content, height=400)
+            
+            # Download Buttons (Using Session State Data)
+            col_dl_1, col_dl_2, col_dl_3 = st.columns(3)
+            with col_dl_1:
                 st.download_button(
-                    label="📄 Download DOCX",
-                    data=st.session_state.docx_data,
-                    file_name="cover_letter.docx",
-                    mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+                    "📄 Word (.docx)", 
+                    st.session_state.docx_data, 
+                    "cover_letter.docx", 
+                    "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
                 )
-        
-        with col_exp_2:
-            if st.session_state.pdf_data:
+            with col_dl_2:
                 st.download_button(
-                    label="📑 Download PDF",
-                    data=st.session_state.pdf_data,
-                    file_name="cover_letter.pdf",
-                    mime="application/pdf"
+                    "📑 PDF (.pdf)", 
+                    st.session_state.pdf_data, 
+                    "cover_letter.pdf", 
+                    "application/pdf"
                 )
-        
-        with col_exp_3:
+            with col_dl_3:
+                st.download_button(
+                    "📜 LaTeX (.tex)", 
+                    st.session_state.latex_data, 
+                    "cover_letter.tex", 
+                    "application/x-tex"
+                )
+                
+            # Source View
             if st.session_state.latex_code:
-                st.download_button(
-                    label="📋 Download LaTeX",
-                    data=st.session_state.latex_code,
-                    file_name="cover_letter.tex",
-                    mime="text/plain"
-                )
-        
-        st.divider()
-        st.subheader("Generation Metadata")
-        
-        if st.session_state.gen_metadata:
-            st.json(st.session_state.gen_metadata)
-
-# Footer
-st.divider()
-st.caption("🔒 Privacy First: All data processed locally. Never stored on third-party servers.")
+                with st.expander("🔍 View LaTeX Source Code"):
+                    st.code(st.session_state.latex_code, language='tex')

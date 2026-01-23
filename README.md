@@ -1,149 +1,65 @@
-# AI Cover Letter Generator v1.2
+# AI Cover Letter Generator 🚀
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![GitHub Release](https://img.shields.io/github/v/release/HansonHe-UW/ai-cover-letter-generator.svg)](https://github.com/HansonHe-UW/ai-cover-letter-generator/releases)
+[![Made with Python](https://img.shields.io/badge/Python-3.10+-blue.svg)](https://www.python.org/)
+[![Streamlit App](https://img.shields.io/badge/Streamlit-FF4B4B?style=flat&logo=streamlit&logoColor=white)](https://streamlit.io/)
+[![OpenAI](https://img.shields.io/badge/OpenAI-GPT--4o-412991?style=flat&logo=openai&logoColor=white)](https://openai.com/)
+[![Gemini](https://img.shields.io/badge/Google-Gemini--1.5-8E75B2?style=flat&logo=google&logoColor=white)](https://deepmind.google/technologies/gemini/)
 
-A local-first, privacy-focused tool to generate tailored cover letters using OpenAI (GPT-4o) or Google Gemini.
+A professional, privacy-focused AI tool that crafts tailored cover letters from your Resume (PDF) and a Job Description. Built for macOS users who want a clean, production-ready workflow.
 
-## Features (v1.2)
+## ✨ Features
 
-- **AI-Powered Generation**: Uses OpenAI or Google Gemini.
-- **Privacy First**: API keys stored locally (encrypted option available). Resume/JD data is sent *only* to the AI provider.
-- **Multi-Profile**: Switch between different personas (e.g., Engineering vs. Management).
-- **Professional Exports**: Word (.docx), PDF (.pdf), and LaTeX (.tex).
-- **Secure Vault**: Optional master-password encryption for your API keys.
-- **Comprehensive Error Handling**: Robust error handling for all API calls (v1.2 NEW)
-- **Input Validation**: All user inputs validated before processing (v1.2 NEW)
-- **User-Friendly Errors**: Clear error messages instead of crashes (v1.2 NEW)
+-   **Multi-Model Intelligence**: Choose between **OpenAI (GPT-4o)** for maximum quality or **Google Gemini (1.5 Pro/Flash)** for speed and longer context.
+-   **Granular Control**: Toggle between "Budget Mode" (Flash/Turbo) and "Quality Mode" (GPT-4o/Pro) on the fly.
+-   **Smart Profile Management**: Your personal details (Name, Email, Links) are persisted locally but **never hardcoded** in the source.
+-   **Secure API Key Vault**: Keys are stored locally in a git-ignored file. You only need to enter them once.
+-   **Parallel Export**: Instantly generate downloads in **Word (.docx)**, **PDF (.pdf)**, and **LaTeX (.tex)** formats.
+-   **Privacy First**: All sensitive data (`my_profile.json`, `secrets_store.json`) is strictly excluded from version control.
 
-## Quick Start (macOS)
+## 🚀 Installation & Setup (macOS)
 
-### 1. Clone & CD
-
+### 1. Clone the Repository
 ```bash
-git clone https://github.com/HansonHe-UW/ai-cover-letter-generator.git
+git clone https://github.com/yourusername/ai-cover-letter-generator.git
 cd ai-cover-letter-generator
 ```
 
-### 2. Setup
-
-Run the setup script to create the virtual environment and install dependencies:
-
+### 2. Auto-Setup
+Run the included setup script. This will check for Homebrew, Python 3, create a virtual environment, and install dependencies.
 ```bash
 ./setup.sh
 ```
 
-### 3. Configure API Keys
-
-Copy the example env file and add your API keys:
-
-```bash
-cp .env.example .env
-# Edit .env with your OpenAI or Google Gemini API key
-```
-
-### 4. Run the App
-
-Launch the app:
-
+### 3. Launch the App
+Use the one-click launcher to start the server and open your browser automatically.
 ```bash
 ./start_app.command
 ```
+*(Or manually run: `./run.sh`)*
 
-Or manually:
+## ⚙️ Configuration
 
-```bash
-source venv/bin/activate
-streamlit run app.py
-```
+### User Profile
+Go to the **"⚙️ Settings"** tab in the app to set up your profile.
+-   Name, Email, Phone, LinkedIn, Address.
+-   This data is saved to `my_profile.json` locally.
 
-The app will open at `http://localhost:8501`
+### API Keys
+Enter your OpenAI or Google Gemini API keys in the **Settings** tab.
+-   You can save them for future sessions.
+-   They are stored securely in `secrets_store.json`.
 
-## Usage
+## 🛡️ Privacy & Security
+This project is configured to **ignore** sensitive files. Ensure you have the `.gitignore` file present which blocks:
+-   `secrets_store.json`
+-   `my_profile.json`
+-   `.env`
 
-1.  **Settings Tab**:
-    *   Enter your OpenAI or Google Gemini API Key.
-    *   (Optional) Enable Encryption to lock your keys with a password.
-    *   Create or select a Profile with your name and contact info.
-2.  **Generator Tab**:
-    *   Upload your Resume (PDF).
-    *   Paste the Job Description.
-    *   Click "Generate".
-3.  **Output Tab**:
-    *   Preview and edit the letter directly in the app.
-    *   Download in your preferred format (Word, PDF, LaTeX).
-
-## 🔒 Privacy & Security
-
-*   **Local Storage**: Your API keys and profiles are stored in `secrets_store.json` and `profiles/` on your machine.
-*   **Encrypted Vault**: v1.2 includes AES encryption for your keys if you set a master password.
-*   **AI Data**: Your Resume text and the Job Description are sent to the selected AI Provider (OpenAI or Google Gemini) for processing. They are NOT stored on any third-party server by this app.
-*   **Safety**: Prompt injection defenses are enabled to prevent malicious hidden instructions in JDs.
-
-## Requirements
-
-*   Python 3.8 or higher
-*   See `requirements.txt` for all dependencies.
-
-## Testing
-
-To verify the installation:
-
-```bash
-python3 -m unittest discover -s tests -p "test_*.py"
-```
-
-Alternatively, you can manually verify:
-1.  Launch app and confirm you can create a profile.
-2.  Try "Enable Encryption" in Settings.
-
-## Troubleshooting
-
-**Q: "Module not found" errors?**  
-A: Run `./setup.sh` again, then activate the virtual environment: `source venv/bin/activate`
-
-**Q: API key not working?**  
-A: Verify your key is correct in Settings. For OpenAI, check https://platform.openai.com/account/api-keys. For Google, check https://console.cloud.google.com
-
-**Q: PDF upload fails?**  
-A: Ensure the PDF contains extractable text (not scanned images).
-
-**Q: "PDF file too large"?**  
-A: Max file size is 10MB. Compress your PDF or use a shorter resume.
-
-## 📄 License
-
-This project is licensed under the **MIT License** - see the [LICENSE](LICENSE) file for details.
-
-### What you can do:
-✅ Use commercially  
-✅ Modify the code  
-✅ Distribute it  
-✅ Use privately  
-
-### What you must do:
-✅ Include the original license and copyright notice
-
-[Learn more about MIT License](https://opensource.org/licenses/MIT)
-
-## 🤝 Contributing
-
-Contributions are welcome! Please feel free to submit a Pull Request.
-
-1. Fork the repository
-2. Create your feature branch (`git checkout -b feature/AmazingFeature`)
-3. Commit your changes (`git commit -m 'Add some AmazingFeature'`)
-4. Push to the branch (`git push origin feature/AmazingFeature`)
-5. Open a Pull Request
-
-## 📚 Documentation
-
-- [CHANGELOG.md](CHANGELOG.md) - Version history and changes
-- [v1.2_RELEASE_NOTES.md](v1.2_RELEASE_NOTES.md) - v1.2.0 release guide
-- [IMPROVEMENTS.md](IMPROVEMENTS.md) - Future roadmap
+## 📦 Tech Stack
+-   **Frontend**: Streamlit
+-   **AI Core**: OpenAI API, Google Generative AI SDK
+-   **PDF Processing**: PyPDF2
+-   **Document Gen**: python-docx, FPDF2
 
 ---
-
-Made with ❤️ by [Hanson He](https://github.com/HansonHe-UW)
-
-**Questions?** Open an [issue](https://github.com/HansonHe-UW/ai-cover-letter-generator/issues) or check the [discussions](https://github.com/HansonHe-UW/ai-cover-letter-generator/discussions)
+Made with ❤️ by [Hanson He]
