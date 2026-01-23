@@ -14,7 +14,7 @@ A local-first, privacy-focused tool to generate tailored cover letters using Ope
 
 1.  **Clone & CD**
     ```bash
-    git clone https://github.com/your-username/ai-cover-letter-generator.git
+    git clone https://github.com/HansonHe-UW/ai-cover-letter-generator.git
     cd ai-cover-letter-generator
     ```
 
