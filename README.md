@@ -2,6 +2,10 @@
 
 A local-first, privacy-focused tool to generate tailored cover letters using OpenAI (GPT-4o) or Google Gemini.
 
+## ✅ Published (Live Demo)
+
+Live URL: https://ai-cover-letter-generator.azurewebsites.net
+
 ## Features (v1.1)
 
 - **AI-Powered Generation**: Uses OpenAI or Google Gemini.
